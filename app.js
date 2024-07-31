@@ -7,7 +7,7 @@ const cors = require('cors');
 const authMiddleware = require('./src/auth/auth.middlewares');
 const mongoose = require('mongoose');
 dotenv.config();
-mongoose.connect(`mongodb+srv://admin:3YkXHZDQ3JJb3EZu@cluster0.xmiyl.mongodb.net/guildtechdemo`)
+mongoose.connect(process.env.DATABASE_URL)
 
 const authRouter = require('./src/auth/auth.routes');
 const usersRouter = require('./src/users/users.routes');
