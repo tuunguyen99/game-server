@@ -29,6 +29,9 @@ app.use('/auth', authRouter);
 app.use('/users',authMiddleware.isAuth, usersRouter);
 app.use('/guilds', guildRouter);
 
+// NOTE: We are using `guild` path in shards-server
+app.use('/guild', guildRouter);
+
 app.use((req, res, next) => {
 	next(createError(404));
 });
