@@ -1,16 +1,17 @@
 const Guild = require('./guilds.models');
 const User = require('../users/users.models');
+const axios = require('axios');
 
 async function newGuild(payload) {
-    const userOfMiraiID = await User.findOne({ _id: payload.user.userId });
+    const userOfMiraiID = await User.findOne({ _id: payload.owner.userId });
     if (userOfMiraiID == null)
-        throw new Error('Dont have account in game');
+        throw new Error('Guild owner does not have account in game');
     const guild = new Guild({
         guildId: payload._id,
         guildAddress: payload.address,
-        name: req.body.name,
-        owner: payload.user.userId,
-        users: [payload.user.userId]
+        name: payload.name,
+        owner: payload.owner.userId,
+        users: [payload.owner.userId],
     });
     userOfMiraiID.guild = guild._id;
     await Promise.all([guild.save(), userOfMiraiID.save()]);
@@ -77,6 +78,31 @@ exports.validateKickMember = async (req, res) => {
     });
 }
 
+exports.syncCreatedGuild = async (req, res) => {
+    const response = await axios.get(
+        `${process.env.SHARDS_API_URL}/v1/guilds/sync/${process.env.CLIENT_ID}`
+    );
+    const allGuilds = response.data.data;
+    const savedGuilds = [];
+    // Save all guilds to DB
+    await Promise.all(
+        allGuilds.map(async (guild) => {
+            const guildId = guild.guildId;
+            const isGuildExist = await Guild.findOne({ guildId });
+            if (!isGuildExist) {
+                const newGuild = new Guild(guild);
+                console.log('Saving guild: ', newGuild);
+                await newGuild.save();
+                savedGuilds.push(newGuild);
+            }
+        })
+    );
+    res.status(200).send({
+        savedGuilds,
+        count: savedGuilds.length,
+    });
+}
+
 exports.webHook = async (req, res) => {
     console.log(req.body);
     switch (req.body.key) {
@@ -84,6 +110,8 @@ exports.webHook = async (req, res) => {
             await newGuild(JSON.parse(req.body.value));
             break;
         case 'userJoinGuild':
+            await userJoinLeftGuild(JSON.parse(req.body.value), true);
+            break;
         case 'userRejoinGuild':
             await userJoinLeftGuild(JSON.parse(req.body.value), true);
             break;

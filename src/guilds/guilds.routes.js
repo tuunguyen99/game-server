@@ -9,4 +9,9 @@ router.get(
   guildMiddleware.isGameServerAuth,
   guildsController.validateKickMember
 );
+router.post(
+  '/sync',
+  guildsController.syncCreatedGuild
+);
+
 module.exports = router;
