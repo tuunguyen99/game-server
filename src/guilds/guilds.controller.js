@@ -103,6 +103,24 @@ exports.syncCreatedGuild = async (req, res) => {
     });
 }
 
+async function changeGuildOwner(payload) {
+    const guildId = payload._id;
+    const guild = await Guild.findOne({ guildId });
+    if (guild == null)
+        throw new Error('Guild not found');
+
+    const oldOwnerId = payload.oldOwner.userId;
+    const newOwnerId = payload.newOwner.userId;
+
+    if (guild.owner !== oldOwnerId) {
+       throw new Error('Wrong owner');
+    }
+
+    guild.owner = newOwnerId;
+    await guild.save();
+    return true;
+}
+
 exports.webHook = async (req, res) => {
     console.log(req.body);
     switch (req.body.key) {
@@ -118,6 +136,9 @@ exports.webHook = async (req, res) => {
         case 'userLeftGuild':
         case 'userBurnSlot':
             await userJoinLeftGuild(JSON.parse(req.body.value), false);
+            break;
+        case 'changeOwnerGuild':
+            await changeGuildOwner(JSON.parse(req.body.value));
             break;
         default:
             break;
